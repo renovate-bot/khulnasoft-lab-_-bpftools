@@ -1,0 +1,116 @@
+#!/usr/bin/env python
+
+import getopt
+import os
+import sys
+import string
+import struct
+import pcappy
+
+import ebpf-toolkit.utils
+
+
+def usage():
+    print """
+pcap2hex.py [ OPTIONS ] [ pcap file... ]
+
+Read pcap from stdin or given pcap files and print hex-encoded
+packets. Additionally pcap2hex can normalize DLT_LINUX_SLL l2 header
+(used by "tcpdump -i any") to something that looks more like
+DLT_EN10MB (by "tcpdump -i eth0"). Pcap2hex can also scrub (anonymize)
+packets by overwriting l2 MAC addresses and l3 IPv4 and IPv6 addresses
+with zeros.
+
+Options are:
+  -h, --help         print this message
+  -s, --scrub        scrub/anonymize MAC and IP addresses
+  -n, --no-normalize don't normalize L2 headers from 16 to
+                     14 bytes (from DLT_LINUX_SLL to DLT_EN10MB)
+  -a, --ascii        print printable asci characters
+""".lstrip()
+    sys.exit(2)
+
+
+def main():
+    scrub = ascii = False
+    normalize = True
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hsna",
+                                   ["help", "scrub", "no-normalize", "ascii"])
+    except getopt.GetoptError as err:
+        print str(err)
+        usage()
+
+    for o, a in opts:
+        if o in ("-h", "--help"):
+            usage()
+        elif o in ("-s", "--scrub"):
+            scrub = True
+        elif o in ("-n", "--no-normalize"):
+            normalize = False
+        elif o in ("-a", "--ascii"):
+            ascii = True
+        else:
+            assert False, "unhandled option"
+
+    if not args:
+        readfds = [sys.stdin]
+    else:
+        readfds = [open(fname, 'rb') for fname in args]
+
+    for fd in readfds:
+        p = pcappy.open_offline(fd)
+
+        l3_off = None
+        l3_off_bad = 0
+
+        while True:
+            try:
+                r = p.next_ex()
+            except pcappy.PcapPyException:
+                break
+            if r is None:
+                break
+            hdr, data = r
+
+            if l3_off is None:
+                l3_off = ebpf-toolkit.utils.find_ip_offset(data)
+                if l3_off is None:
+                    l3_off_bad += 1
+                    if l3_off_bad > 5:
+                        raise Exception("Can't find IP offset")
+                    continue
+
+            if scrub:
+                data = ebpf-toolkit.utils.do_scrub(data, l3_off)
+
+            if normalize and l3_off in (16,):
+                data = data[2:]
+            if normalize and l3_off in (18,):
+                data = data[0:12] + data[16:]
+
+            h = data.encode('hex')
+            if not ascii:
+                print h
+            else:
+                s = ''.join([c if (c in string.printable and
+                                   c not in string.whitespace) else '.'
+                             for c in data])
+                print "%s\t%s" % (h, s)
+
+    sys.stdout.flush()
+
+    # normal exit crashes due to a double free error in pcappy
+    os._exit(0)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except IOError, e:
+        if e.errno == 32:
+            os._exit(-1)
+        raise
+    except KeyboardInterrupt:
+        os._exit(-1)
