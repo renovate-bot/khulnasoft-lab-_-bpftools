@@ -83,7 +83,7 @@ import stat
 import string
 import sys
 
-import ebpf-toolkit
+import bpftools
 
 
 parser = argparse.ArgumentParser(
@@ -126,7 +126,7 @@ for action, list_of_patterns in [('ACCEPT', args.accept), ('DROP', args.drop)]:
     cmds = []
     for domain in list_of_patterns:
         if domain != 'any':
-            _, bytecode = ebpf-toolkit.gen('dns',
+            _, bytecode = bpftools.gen('dns',
                                        ['-i', domain],
                                        assembly=False,
                                        l3_off=0,

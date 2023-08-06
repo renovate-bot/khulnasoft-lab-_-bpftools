@@ -6,4 +6,4 @@ linux_tools/bpf_jit_disasm
 *.pyc
 venv/
 build/
-ebpf-toolkit.egg-info
+bpftools.egg-info

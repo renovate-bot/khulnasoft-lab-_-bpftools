@@ -4,7 +4,7 @@ import socket
 import struct
 import sys
 
-import ebpf-toolkit.utils
+import bpftools.utils
 
 
 def usage():
@@ -81,7 +81,7 @@ def unpack_domain(off, l5, rr=False):
 
 def parsedns(raw):
 
-    l2len = ebpf-toolkit.utils.find_ip_offset(raw)
+    l2len = bpftools.utils.find_ip_offset(raw)
     assert l2len is not None
     l2, l3 = raw[:l2len], raw[l2len:]
 

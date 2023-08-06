@@ -6,7 +6,7 @@ import stat
 import string
 import sys
 
-import ebpf-toolkit
+import bpftools
 
 
 def main():
@@ -53,7 +53,7 @@ BPF generators, for example:
                         help='offset of an L3 header')
     parser.add_argument('-s', '--assembly', action='store_true',
                         help='print readable assembly, not numeric bytecode')
-    parser.add_argument('type', nargs=1, choices=ebpf-toolkit.generator_names,
+    parser.add_argument('type', nargs=1, choices=bpftools.generator_names,
                         help='BPF generator type')
     parser.add_argument('parameters', nargs='*',
                         help='parameters passed to the BPF generator')
@@ -64,7 +64,7 @@ BPF generators, for example:
         parser.print_help()
         sys.exit(-1)
 
-    name, ret = ebpf-toolkit.gen(args.type[0],
+    name, ret = bpftools.gen(args.type[0],
                              args.parameters,
                              assembly=args.assembly,
                              l3_off=args.offset,

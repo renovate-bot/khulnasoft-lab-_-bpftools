@@ -6,12 +6,12 @@ import subprocess
 import unittest
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.all import *
-import ebpf-toolkit
+import bpftools
 
 class TestP0f(unittest.TestCase):
     def _test_p0f(self, packet, p0f, should_match):
         wrpcap("/tmp/p0f.pcap", packet)
-        p0f_bpf = ebpf-toolkit.gen_p0f.p0f.P0fBPF(p0f)
+        p0f_bpf = bpftools.gen_p0f.p0f.P0fBPF(p0f)
 
         proc = subprocess.Popen(['/usr/sbin/tcpdump','-r', '/tmp/p0f.pcap', '-n', "%s" % p0f_bpf.bpf_str],stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         match = True if proc.stdout.readline() != '' else False
